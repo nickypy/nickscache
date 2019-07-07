@@ -1,5 +1,5 @@
-# NC (Nick's Cache)
-Actual name TBD
+# Stache
+A remote LRU cache written in Go.
 
 ## Getting started
 ### Building and running server:
