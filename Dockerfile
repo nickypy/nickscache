@@ -9,5 +9,5 @@ RUN go build
 
 FROM alpine:3.10
 
-COPY --from=build /app/main .
-CMD ["./main"]
+COPY --from=build /app/stache .
+CMD ["./stache"]
