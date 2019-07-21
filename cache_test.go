@@ -7,7 +7,11 @@ import (
 func TestPut(t *testing.T) {
 	cache := NewCache(100)
 	cache.Put("test", "abcde")
-	val := cache.Get("test")
+	val, err := cache.Get("test")
+
+	if err != nil {
+		t.Fail()
+	}
 
 	if val != "abcde" {
 		t.Fail()
@@ -17,9 +21,9 @@ func TestPut(t *testing.T) {
 func TestGetNoKey(t *testing.T) {
 	cache := NewCache(100)
 	cache.Put("test", "abcde")
-	val := cache.Get("test2")
+	_, err := cache.Get("test2")
 
-	if val != "" {
+	if err == nil {
 		t.Fail()
 	}
 }

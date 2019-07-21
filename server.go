@@ -17,7 +17,8 @@ type App struct {
 
 // Message the request sent from client
 type Message struct {
-	Data string `json:"data"`
+	Key  string `json:"key,omitempty"`
+	Data string `json:"data,omitempty"`
 }
 
 // Ping sends "PONG" back for server status
@@ -27,9 +28,6 @@ func Ping(w http.ResponseWriter, r *http.Request) {
 
 // WriteHandler updates or add a new value to the cache
 func (a *App) WriteHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	key := vars["key"]
-
 	b, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
@@ -40,22 +38,35 @@ func (a *App) WriteHandler(w http.ResponseWriter, r *http.Request) {
 	var msg Message
 	err = json.Unmarshal(b, &msg)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), 422)
 		return
 	}
 
-	a.Cache.Put(key, msg.Data)
+	a.Cache.Put(msg.Key, msg.Data)
 	w.WriteHeader(201)
 }
 
 // ReadHandler fetches a value with the given key in the cache
 func (a *App) ReadHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	key := vars["key"]
+	b, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
 
 	var msg Message
-	if str, ok := a.Cache.Get(key).(string); ok {
-		msg = Message{str}
+	err = json.Unmarshal(b, &msg)
+	if err != nil {
+		http.Error(w, err.Error(), 422)
+		return
+	}
+
+	value, err := a.Cache.Get(msg.Key)
+
+	if err != nil {
+		http.Error(w, err.Error(), 404)
+		return
+	}
+
+	if str, ok := value.(string); ok {
+		msg = Message{msg.Key, str}
 	} else {
 		http.Error(w, errors.New("Could not convert value to a string").Error(), 500)
 		return
@@ -75,8 +86,8 @@ func (a *App) ReadHandler(w http.ResponseWriter, r *http.Request) {
 func BuildServer(a *App) *http.Server {
 	router := mux.NewRouter()
 	router.HandleFunc("/ping", Ping).Methods("GET")
-	router.HandleFunc("/{key}", a.ReadHandler).Methods("GET")
-	router.HandleFunc("/{key}", a.WriteHandler).Methods("POST")
+	router.HandleFunc("/", a.ReadHandler).Methods("GET")
+	router.HandleFunc("/", a.WriteHandler).Methods("POST")
 
 	return &http.Server{
 		Addr:         "0.0.0.0:8080",

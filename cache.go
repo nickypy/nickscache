@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -10,6 +11,16 @@ type Cache struct {
 	MaxSize int
 	Order   *List
 	mutex   *sync.Mutex
+}
+
+// KeyNotFoundError wrapper when key not found
+type KeyNotFoundError struct {
+	key string
+}
+
+// Error formatted error message
+func (e KeyNotFoundError) Error() string {
+	return fmt.Sprintf("Could not find value for key %s", e.key)
 }
 
 // NewCache return a newly constructed cache
@@ -39,7 +50,7 @@ func (cache *Cache) Put(key, value string) {
 }
 
 // Get a key from the map, if it exists otherwise, return an empty string
-func (cache *Cache) Get(key string) NodeKey {
+func (cache *Cache) Get(key string) (NodeKey, error) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
@@ -47,10 +58,10 @@ func (cache *Cache) Get(key string) NodeKey {
 		removed := cache.Order.RemoveNode(value)
 		cache.Order.Insert(removed.Key, key)
 
-		return removed.Key
+		return removed.Key, nil
 	}
 
-	return ""
+	return nil, KeyNotFoundError{key}
 }
 
 // SizeRemaining return space left in bytes
